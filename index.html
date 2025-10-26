@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - Modern Task Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
+    <script src="https://unpkg.com/splitting@1.0.6/dist/splitting.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/splitting@1.0.6/dist/splitting.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .task-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .task-card:hover { transform: translateY(-2px) rotateX(5deg); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .priority-high { border-left: 4px solid #EF4444; }
+        .priority-medium { border-left: 4px solid #F59E0B; }
+        .priority-low { border-left: 4px solid #10B981; }
+        .completed { opacity: 0.7; }
+        .completed .task-text { text-decoration: line-through; }
+        .glass { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.8); }
+        #particles-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .typing-cursor { animation: blink 1s infinite; }
+        @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+        .filter-btn.active { background: #334155; color: white; }
+        .add-task-form { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .add-task-form.open { max-height: 200px; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div id="particles-container"></div>
+    
+    <!-- Header Section -->
+    <header class="relative bg-white shadow-sm overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-slate-50 to-teal-50 opacity-70"></div>
+        <div class="relative max-w-6xl mx-auto px-6 py-12">
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <h1 class="text-4xl font-bold text-slate-800 mb-2" data-splitting>
+                        <span id="typed-title"></span>
+                    </h1>
+                    <p class="text-slate-600 text-lg">Stay organized, stay productive</p>
+                </div>
+                <div class="flex-shrink-0 ml-8">
+                    <img src="resources/hero-productivity.png" alt="Productivity" class="w-32 h-20 object-cover rounded-lg shadow-md">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-6 py-8">
+        <!-- Task Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="glass rounded-xl p-6 border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">Total Tasks</p>
+                        <p class="text-2xl font-bold text-slate-800" id="total-tasks">12</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass rounded-xl p-6 border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">Completed</p>
+                        <p class="text-2xl font-bold text-teal-600" id="completed-tasks">5</p>
+                    </div>
+                    <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass rounded-xl p-6 border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">Progress</p>
+                        <p class="text-2xl font-bold text-slate-800" id="progress-percent">42%</p>
+                    </div>
+                    <div class="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Controls -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <!-- Filters -->
+            <div class="flex gap-2">
+                <button class="filter-btn active px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-slate-700 hover:bg-slate-200 transition-colors" data-filter="all">
+                    All Tasks
+                </button>
+                <button class="filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-slate-700 hover:bg-slate-200 transition-colors" data-filter="active">
+                    Active
+                </button>
+                <button class="filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-slate-700 hover:bg-slate-200 transition-colors" data-filter="completed">
+                    Completed
+                </button>
+            </div>
+            
+            <!-- Add Task Button -->
+            <button id="add-task-btn" class="flex items-center gap-2 px-6 py-3 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add Task
+            </button>
+        </div>
+
+        <!-- Add Task Form -->
+        <div id="add-task-form" class="add-task-form bg-white rounded-xl p-6 border border-gray-200 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="md:col-span-2">
+                    <input type="text" id="task-input" placeholder="What needs to be done?" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none">
+                </div>
+                <div class="flex gap-2">
+                    <select id="priority-select" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none">
+                        <option value="low">Low Priority</option>
+                        <option value="medium" selected>Medium Priority</option>
+                        <option value="high">High Priority</option>
+                    </select>
+                    <button id="submit-task" class="px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-500 transition-colors font-medium">
+                        Add
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task List -->
+        <div id="task-list" class="space-y-3">
+            <!-- Sample tasks will be populated by JavaScript -->
+        </div>
+    </main>
+
+    <script src="main.js"></script>
+</body>
+</html>
